@@ -1,361 +1,39 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GOGOR STUDIO v30.0 - PRO</title>
-    
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GOGOR STUDIO</title>
+    <script src="https://cdn.jsdelivr.net/npm/@octokit/rest/dist-octokit-rest.min.js"></script>
+    <script>
+    // Initialize the GitHub API client
+    const octokit = new Octokit({ auth: 'your_personal_access_token' });
 
-    <style>
-        :root {
-            --bg: #050505; --panel: #111111; --accent: #00e5ff;
-            --text: #e0e0e0; --danger: #ff1744; --success: #00e676;
-            --border: #222222; --input-bg: #000; --warning: #ffea00;
+    // Function to auto-fill GitHub integration details
+    async function autoFillGitHubIntegration() {
+        try {
+            const { data } = await octokit.rest.users.getAuthenticated();
+            document.getElementById('github_username').value = data.login;
+            document.getElementById('github_email').value = data.email;
+        } catch (error) {
+            console.error('Error fetching GitHub user data:', error);
         }
+    }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        
-        body {
-            font-family: 'Segoe UI', Roboto, sans-serif;
-            background-color: var(--bg); color: var(--text);
-            height: 100vh; width: 100vw; display: flex; flex-direction: column; overflow: hidden;
-        }
-
-        header {
-            background: var(--panel); padding: 10px;
-            display: flex; flex-direction: column; gap: 8px;
-            border-bottom: 2px solid var(--accent); z-index: 1000;
-        }
-
-        .action-row { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
-        .action-row::-webkit-scrollbar { display: none; }
-
-        .search-bar { display: flex; gap: 5px; width: 100%; align-items: center; }
-        .logo-text { font-weight: 900; font-size: 14px; color: var(--accent); white-space: nowrap; margin-right: 5px; }
-
-        .smart-input {
-            flex: 1; background: var(--input-bg); border: 1px solid var(--border);
-            color: var(--accent); padding: 6px 10px; font-size: 11px; border-radius: 4px; outline: none;
-        }
-
-        .main-editor { flex: 1; display: flex; flex-direction: column; overflow-y: auto; background: #000; }
-        .grid-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; }
-        
-        .box { display: flex; flex-direction: column; background: var(--bg); min-height: 280px; border: 1px solid var(--border); }
-        .box.active-lang { border: 2px solid var(--accent) !important; }
-
-        .box-header { 
-            padding: 8px 12px; font-size: 10px; font-weight: bold; 
-            background: var(--panel); color: var(--accent); 
-            display: flex; justify-content: space-between; align-items: center;
-        }
-
-        .header-btns { display: flex; gap: 4px; }
-        .btn-mini { font-size: 9px; color: #fff; padding: 4px 8px; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; }
-
-        textarea {
-            flex: 1; border: none; background: transparent; color: #a9dc76;
-            padding: 12px; font-size: 13px; outline: none; resize: none; font-family: 'Consolas', monospace;
-            line-height: 1.6; width: 100%;
-        }
-
-        .output-pane { height: 35vh; background: #fff; border-top: 3px solid var(--accent); position: relative; display: flex; flex-direction: column; }
-        .output-pane.fullscreen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 999999; }
-        
-        .tab-bar { display: flex; background: #111; }
-        .tab-btn { padding: 10px 20px; font-size: 10px; color: #888; border: none; background: none; cursor: pointer; font-weight: bold; }
-        .tab-btn.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
-
-        #viewer { flex: 1; width: 100%; height: 100%; border: none; }
-        #console-out { flex: 1; display: none; background: #000; color: #00ff00; padding: 15px; font-family: 'Consolas', monospace; font-size: 12px; overflow-y: auto; }
-
-        .btn { border: none; padding: 10px 14px; border-radius: 6px; font-size: 10px; font-weight: bold; cursor: pointer; text-transform: uppercase; white-space: nowrap; }
-        .btn-accent { background: var(--accent); color: #000; }
-        .btn-success { background: var(--success); color: #000; }
-        .btn-danger { background: var(--danger); color: #fff; }
-
-        .side-menu { position: fixed; top: 0; right: 0; width: 100%; height: 100%; background: var(--panel); z-index: 9999; display: none; flex-direction: column; padding: 20px; }
-        .db-header { display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
-        .db-search { background: #000; border: 1px solid var(--border); color: #fff; padding: 8px; border-radius: 4px; font-size: 11px; outline: none; width: 100%; }
-        #list-proyek { flex: 1; overflow-y: auto; }
-        .card { background: #000; padding: 12px; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 10px; }
-        .card-actions { display: flex; gap: 5px; margin-top: 8px; }
-
-        #close-fs { position: fixed; top: 15px; left: 50%; transform: translateX(-50%); z-index: 1000001; display: none; background: var(--danger); color: #fff; padding: 8px 20px; border-radius: 20px; font-size: 11px; }
-
-        @media (min-width: 768px) { .grid-container { grid-template-columns: repeat(4, 1fr); } }
-    </style>
+    // Call the function on window load
+    window.onload = autoFillGitHubIntegration;
+    </script>
 </head>
 <body>
-
-<header>
-    <div class="action-row">
-        <button class="btn btn-danger" onclick="clearEditor()">🗑️ RESET</button>
-        <button class="btn btn-accent" onclick="exportFullJSON()">📥 EXPORT</button>
-        <label class="btn btn-accent">📤 IMPORT <input type="file" id="import-input" hidden accept=".json" onchange="importFullJSON(this)"></label>
-        <button class="btn btn-success" onclick="buildProject('html')">🔥 HTML</button>
-        <button class="btn btn-success" onclick="buildProject('zip')" style="background:#00bcd4">📦 ZIP</button>
-        <button class="btn btn-danger" onclick="buildProject('exe')" style="background:#607d8b">🖥️ EXE</button>
-        <button class="btn btn-accent" onclick="buildAPKBridge()" style="background:#ff9800; color:black;">🤖 APK</button>
-        <label class="btn btn-success" style="background:#e91e63; color:white;">📸 SCAN <input type="file" id="scan-input" hidden accept="image/*" onchange="scanImage(this)"></label>
-    </div>
-
-    <div class="search-bar">
-        <span class="logo-text">GOGOR STUDIO</span>
-        <input type="text" id="smart-search" class="smart-input" placeholder="Cari kode editor..." oninput="ultraSearch()">
-        <label class="btn btn-success" style="background:#9c27b0; color:white;">📁 ADD <input type="file" id="universal-file" hidden onchange="processFileAuto(this)"></label>
-        <button class="btn btn-accent" style="background:#ffea00; color:black;" onclick="saveNew()">💾 SIMPAN</button>
-        <button class="btn btn-accent" onclick="toggleSidebar()">📁 MANAGER</button>
-        <button class="btn btn-success" onclick="masterRun()">▶️ RUN</button>
-    </div>
-</header>
-
-<div class="main-editor">
-    <div class="grid-container" id="editor-grid"></div>
-</div>
-
-<button id="close-fs" onclick="toggleFullscreen()">❌ EXIT FULLSCREEN</button>
-
-<div class="output-pane" id="preview-section">
-    <div class="tab-bar">
-        <button class="tab-btn active" id="tab-web" onclick="switchTab('web')">WEB</button>
-        <button class="tab-btn" id="tab-console" onclick="switchTab('console')">CONSOLE</button>
-        <button class="btn" style="margin-left:auto; background:none; color:var(--accent)" onclick="toggleFullscreen()">[ FS ]</button>
-    </div>
-    <iframe id="viewer"></iframe>
-    <div id="console-out">Ready...</div>
-</div>
-
-<div class="side-menu" id="side-menu">
-    <div class="db-header">
-        <h3 style="color:var(--accent); font-size:14px;">DATABASE MANAGER</h3>
-        <input type="text" id="db-search" class="db-search" placeholder="Cari nama proyek..." oninput="searchInManager()">
-    </div>
-    <div id="list-proyek"></div>
-    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:15px;">
-        <button class="btn btn-success" onclick="saveNew()">💾 SAVE NEW</button>
-        <button class="btn btn-danger" onclick="eraseDB()">FORMAT</button>
-        <button class="btn btn-accent" style="grid-column: span 2;" onclick="toggleSidebar()">CLOSE</button>
-    </div>
-</div>
-
-<script>
-    const languages = [
-        {id:'html', name:'HTML5', type:'web', ext:['html','htm']}, {id:'css', name:'CSS3', type:'web', ext:['css']}, {id:'js', name:'JS', type:'web', ext:['js']},
-        {id:'ts', name:'TS', type:'cloud', api:'typescript', version:'5.0.3', ext:['ts']},
-        {id:'php', name:'PHP', type:'cloud', api:'php', version:'8.2.3', ext:['php']},
-        {id:'py', name:'PYTHON', type:'cloud', api:'python', version:'3.10.0', ext:['py']},
-        {id:'cpp', name:'C++', type:'cloud', api:'cpp', version:'10.2.0', ext:['cpp','c','h']},
-        {id:'java', name:'JAVA', type:'cloud', api:'java', version:'15.0.2', ext:['java']},
-        {id:'sql', name:'SQL', type:'cloud', api:'sqlite3', version:'3.36.0', ext:['sql']}
-    ];
-
-    const DB_NAME = "GOGOR_STABLE_DB";
-    let db, activeId = null, lastActiveLang = 'html';
-
-    const request = indexedDB.open(DB_NAME, 1);
-    request.onupgradeneeded = (e) => { e.target.result.createObjectStore("projects", { keyPath: "id" }); };
-    request.onsuccess = (e) => { db = e.target.result; renderProyek(); };
-
-    const grid = document.getElementById('editor-grid');
-    languages.forEach(l => {
-        grid.innerHTML += `
-            <div class="box" id="box-${l.id}" onclick="setFocus('${l.id}')">
-                <div class="box-header">
-                    <span>${l.name}</span>
-                    <div class="header-btns">
-                        <button class="btn-mini" style="background:var(--success); color:black;" onclick="pasteTo('${l.id}', event)">PST</button>
-                        <button class="btn-mini" style="background:#444" onclick="copyCode('${l.id}', event)">CPY</button>
-                        <button class="btn-mini" style="background:var(--danger)" onclick="clearSpecific('${l.id}', event)">X</button>
-                    </div>
-                </div>
-                <textarea id="${l.id}" spellcheck="false" oninput="autoRunWeb()"></textarea>
-            </div>`;
-    });
-
-    function setFocus(id) {
-        lastActiveLang = id;
-        document.querySelectorAll('.box').forEach(b => b.classList.remove('active-lang'));
-        document.getElementById(`box-${id}`).classList.add('active-lang');
-    }
-
-    // SCAN GAMBAR KE TEKS (OCR)
-    async function scanImage(input) {
-        const file = input.files[0];
-        if (!file) return;
-        
-        const out = document.getElementById('console-out');
-        switchTab('console');
-        out.innerHTML = "> Scanning Image... Mohon Tunggu...";
-        
-        try {
-            const { data: { text } } = await Tesseract.recognize(file, 'eng+ind', {
-                logger: m => { if(m.status === 'recognizing text') out.innerHTML = `> Scanning: ${Math.round(m.progress * 100)}%`; }
-            });
-            
-            document.getElementById(lastActiveLang).value += `\n${text}\n`;
-            out.innerHTML = "> Scan Selesai. Teks dimasukkan ke editor.";
-            masterRun();
-        } catch (err) {
-            out.innerHTML = "> Gagal Scan: " + err.message;
-        }
-        input.value = "";
-    }
-
-    async function pasteTo(id, e) {
-        e.stopPropagation();
-        try {
-            const text = await navigator.clipboard.readText();
-            const area = document.getElementById(id);
-            area.value += text;
-            masterRun();
-        } catch (err) {}
-    }
-
-    function processFileAuto(input) {
-        const file = input.files[0];
-        if (!file) return;
-        const ext = file.name.split('.').pop().toLowerCase();
-        const target = languages.find(l => l.ext && l.ext.includes(ext)) || {id: lastActiveLang};
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            document.getElementById(target.id).value += `\n/* File: ${file.name} */\n${e.target.result}\n`;
-            setFocus(target.id); masterRun();
-        };
-        reader.readAsText(file);
-        input.value = "";
-    }
-
-    async function buildAPKBridge() {
-        const zip = new JSZip();
-        const fullContent = `<!DOCTYPE html><html><style>${document.getElementById('css').value}</style><body>${document.getElementById('html').value}<script>${document.getElementById('js').value}<\/script></body></html>`;
-        zip.file("index.html", fullContent);
-        download(await zip.generateAsync({type:"blob"}), "GOGOR_APK_BUILD.zip");
-        alert("Gunakan Website Web2APK untuk mengonversi ZIP ini.");
-    }
-
-    function searchInManager() {
-        renderProyek(document.getElementById('db-search').value.toLowerCase());
-    }
-
-    function renderProyek(filter = "") {
-        const store = db.transaction("projects").objectStore("projects");
-        store.getAll().onsuccess = (e) => {
-            const list = e.target.result.filter(p => p.name.toLowerCase().includes(filter));
-            document.getElementById('list-proyek').innerHTML = list.map(p => `
-                <div class="card" style="${activeId === p.id ? 'border-color:var(--accent)' : ''}">
-                    <div style="font-size:11px; font-weight:bold;">${p.name}</div>
-                    <div class="card-actions">
-                        <button class="btn btn-success" style="padding:4px 8px;" onclick="loadP(${p.id})">LOAD</button>
-                        <button class="btn btn-accent" style="padding:4px 8px; background:var(--warning); color:black;" onclick="renameP(${p.id})">RENAME</button>
-                        <button class="btn btn-danger" style="padding:4px 8px;" onclick="deleteP(${p.id})">DEL</button>
-                    </div>
-                </div>`).join('');
-        };
-    }
-
-    function renameP(id) {
-        const tx = db.transaction("projects", "readwrite");
-        const store = tx.objectStore("projects");
-        store.get(id).onsuccess = (e) => {
-            const data = e.target.result;
-            const n = prompt("Edit Nama:", data.name);
-            if(n) { data.name = n; store.put(data).onsuccess = () => renderProyek(); }
-        };
-    }
-
-    async function saveNew() {
-        let name = activeId ? null : prompt("Nama Proyek:");
-        if (!activeId && !name) return;
-        const tx = db.transaction("projects", "readwrite");
-        const store = tx.objectStore("projects");
-        let data = { id: activeId || Date.now(), name: name || "Project", date: new Date().toLocaleString() };
-        if(activeId) {
-            const existing = await new Promise(r => store.get(activeId).onsuccess = (e) => r(e.target.result));
-            data.name = existing.name;
-        }
-        languages.forEach(l => data[l.id] = document.getElementById(l.id).value);
-        store.put(data).onsuccess = () => { activeId = data.id; renderProyek(); alert("Saved!"); };
-    }
-
-    function loadP(id) {
-        db.transaction("projects").objectStore("projects").get(id).onsuccess = (e) => {
-            const p = e.target.result;
-            languages.forEach(l => document.getElementById(l.id).value = p[l.id] || "");
-            activeId = id; toggleSidebar(); masterRun();
-        };
-    }
-
-    function deleteP(id) {
-        if(confirm("Hapus?")) {
-            db.transaction("projects", "readwrite").objectStore("projects").delete(id).onsuccess = () => {
-                if(activeId === id) activeId = null;
-                renderProyek();
-            };
-        }
-    }
-
-    function masterRun() {
-        const lang = languages.find(l => l.id === lastActiveLang);
-        if(lang.type === 'web') { switchTab('web'); runWeb(); } 
-        else { switchTab('console'); runCloud(lang); }
-    }
-
-    function runWeb() {
-        const h = document.getElementById('html').value, c = document.getElementById('css').value, j = document.getElementById('js').value;
-        const doc = document.getElementById('viewer').contentWindow.document;
-        doc.open(); doc.write(`<html><head><style>${c}</style></head><body>${h}<script>${j}<\/script></body></html>`); doc.close();
-    }
-
-    async function runCloud(lang) {
-        const out = document.getElementById('console-out'); out.innerHTML = "> Executing...";
-        try {
-            const res = await fetch('https://emkc.org/api/v2/piston/execute', {
-                method: 'POST',
-                body: JSON.stringify({ language: lang.api, version: lang.version, files: [{ content: document.getElementById(lang.id).value }] })
-            });
-            const data = await res.json();
-            out.innerHTML = data.run.output || "Done.";
-        } catch (e) { out.innerHTML = "Error."; }
-    }
-
-    function ultraSearch() {
-        const q = document.getElementById('smart-search').value.toLowerCase();
-        languages.forEach(l => {
-            const match = l.name.toLowerCase().includes(q) || document.getElementById(l.id).value.toLowerCase().includes(q);
-            document.getElementById(`box-${l.id}`).style.display = match ? "flex" : "none";
-        });
-    }
-
-    async function buildProject(type) {
-        const full = `<!DOCTYPE html><html><style>${document.getElementById('css').value}</style><body>${document.getElementById('html').value}<script>${document.getElementById('js').value}<\/script></body></html>`;
-        if (type === 'html') download(new Blob([full], {type:'text/html'}), "index.html");
-        if (type === 'zip') {
-            const zip = new JSZip(); zip.file("index.html", full);
-            download(await zip.generateAsync({type:"blob"}), "project.zip");
-        }
-        if (type === 'exe') download(new Blob([`${full}`], {type:'application/hta'}), "app.hta");
-    }
-
-    function toggleSidebar() { const s = document.getElementById('side-menu'); s.style.display = s.style.display==='flex'?'none':'flex'; }
-    function switchTab(t) {
-        document.getElementById('viewer').style.display = t === 'web' ? 'block' : 'none';
-        document.getElementById('console-out').style.display = t === 'console' ? 'block' : 'none';
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.id.toLowerCase().includes(t)));
-    }
-    function toggleFullscreen() { const isFS = document.getElementById('preview-section').classList.toggle('fullscreen'); document.getElementById('close-fs').style.display = isFS ? 'block' : 'none'; }
-    function clearSpecific(id, e) { e.stopPropagation(); document.getElementById(id).value = ""; }
-    function clearEditor() { if(confirm("Reset?")) { languages.forEach(l => document.getElementById(l.id).value = ""); activeId = null; } }
-    function eraseDB() { if(confirm("Format?")) { indexedDB.deleteDatabase(DB_NAME); location.reload(); } }
-    function download(b, n) { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = n; a.click(); }
-    function copyCode(id, e) { e.stopPropagation(); document.getElementById(id).select(); document.execCommand('copy'); }
-    function exportFullJSON() { db.transaction("projects").objectStore("projects").getAll().onsuccess = (e) => download(new Blob([JSON.stringify(e.target.result)], {type:'application/json'}), "backup.json"); }
-    function importFullJSON(i) { const r = new FileReader(); r.onload = (e) => { JSON.parse(e.target.result).forEach(p => db.transaction("projects", "readwrite").objectStore("projects").put(p)); location.reload(); }; r.readAsText(i.files[0]); }
-    function autoRunWeb() { if(['html','css','js'].includes(lastActiveLang)) runWeb(); }
-
-    setFocus('html');
-</script>
+    <h1>Welcome to GOGOR STUDIO</h1>
+    <form>
+        <label for="github_username">GitHub Username:</label>
+        <input type="text" id="github_username" readonly />
+        <br>
+        <label for="github_email">GitHub Email:</label>
+        <input type="email" id="github_email" readonly />
+        <br>
+        <input type="submit" value="Submit" />
+    </form>
 </body>
 </html>
