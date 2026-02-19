@@ -3,37 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GOGOR STUDIO</title>
-    <script src="https://cdn.jsdelivr.net/npm/@octokit/rest/dist-octokit-rest.min.js"></script>
-    <script>
-    // Initialize the GitHub API client
-    const octokit = new Octokit({ auth: 'your_personal_access_token' });
-
-    // Function to auto-fill GitHub integration details
-    async function autoFillGitHubIntegration() {
-        try {
-            const { data } = await octokit.rest.users.getAuthenticated();
-            document.getElementById('github_username').value = data.login;
-            document.getElementById('github_email').value = data.email;
-        } catch (error) {
-            console.error('Error fetching GitHub user data:', error);
-        }
-    }
-
-    // Call the function on window load
-    window.onload = autoFillGitHubIntegration;
-    </script>
+    <title>GOGOR STUDIO v31.0</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; }
+        header { background: #35424a; color: #ffffff; padding: 10px 0; text-align: center; }
+        .container { width: 80%; margin: auto; overflow: hidden; }
+        footer { background: #35424a; color: #ffffff; text-align: center; padding: 10px 0; position: absolute; bottom: 0; width: 100%; }
+        /* Additional CSS styling */
+    </style>
 </head>
 <body>
-    <h1>Welcome to GOGOR STUDIO</h1>
-    <form>
-        <label for="github_username">GitHub Username:</label>
-        <input type="text" id="github_username" readonly />
-        <br>
-        <label for="github_email">GitHub Email:</label>
-        <input type="email" id="github_email" readonly />
-        <br>
-        <input type="submit" value="Submit" />
-    </form>
+<header>
+    <h1>Welcome to GOGOR STUDIO v31.0</h1>
+</header>
+<div class="container">
+    <h2>HTML Editor</h2>
+    <textarea id="html-editor" style="width: 100%; height: 300px;"></textarea>
+    
+    <h2>CSS Editor</h2>
+    <textarea id="css-editor" style="width: 100%; height: 300px;"></textarea>
+    
+    <h2>JavaScript Editor</h2>
+    <textarea id="js-editor" style="width: 100%; height: 300px;"></textarea>
+    
+    <script>
+        // Initialize Editors
+        const htmlEditor = document.getElementById('html-editor');
+        const cssEditor = document.getElementById('css-editor');
+        const jsEditor = document.getElementById('js-editor');
+        
+        function runCode() {
+            const htmlContent = htmlEditor.value;
+            const cssContent = '<style>' + cssEditor.value + '</style>';
+            const jsContent = jsEditor.value;
+            const outputFrame = document.getElementById('output');
+            outputFrame.contentDocument.body.innerHTML = htmlContent + cssContent;
+            outputFrame.contentWindow.eval(jsContent);
+        }
+    </script>
+    
+    <iframe id="output" style="width: 100%; height: 300px; border: 1px solid #ccc;"></iframe>
+</div>
+<footer>
+    <p>&copy; 2026 GOGOR STUDIO. All rights reserved.</p>
+</footer>
 </body>
 </html>
